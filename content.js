@@ -39,6 +39,22 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   return true;
 });
 
+// 启动检测循环
+function startDetectionLoop() {
+  if (checkInterval) {
+    clearInterval(checkInterval);
+    checkInterval = null;
+  }
+  
+  // 立即检测一次
+  detectPageAndRun();
+  
+  // 定期检查页面状态
+  checkInterval = setInterval(() => {
+    detectPageAndRun();
+  }, 3000);
+}
+
 // 开始自动学习
 function start() {
   if (isRunning) return;
@@ -48,13 +64,8 @@ function start() {
   console.log('%c[自动学习助手] 🚀 开始自动学习', 'color: green; font-size: 16px; font-weight: bold');
   console.log('%c[自动学习助手] 当前URL:', 'color: blue', location.href);
   
-  // 检测当前页面类型并执行相应操作
-  detectPageAndRun();
-  
-  // 定期检查页面状态
-  checkInterval = setInterval(() => {
-    detectPageAndRun();
-  }, 3000);
+  // 启动检测循环
+  startDetectionLoop();
 }
 
 // 停止自动学习
@@ -584,6 +595,12 @@ function goToNextPage() {
         btn.click();
         log('已点击下一页按钮');
         console.log('%c[自动学习助手] ✅ 已点击下一页', 'color: green; font-weight: bold');
+        
+        // 等待页面内容加载后，重新启动检测循环
+        setTimeout(() => {
+          console.log('%c[自动学习助手] 🔄 页面内容已加载，重新启动检测循环', 'color: blue; font-weight: bold');
+          startDetectionLoop();
+        }, 3000);
       }, 2000);
       return true;
     }
@@ -606,6 +623,12 @@ function goToNextPage() {
           item.click();
           log(`已点击第${pageNum}页`);
           console.log('%c[自动学习助手] ✅ 已点击页码', 'color: green; font-weight: bold', pageNum);
+          
+          // 等待页面内容加载后，重新启动检测循环
+          setTimeout(() => {
+            console.log('%c[自动学习助手] 🔄 页面内容已加载，重新启动检测循环', 'color: blue; font-weight: bold');
+            startDetectionLoop();
+          }, 3000);
         }, 2000);
         return true;
       }
