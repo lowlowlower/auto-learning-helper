@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>自动学习助手</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📚 自动学习助手</h1>
+    </div>
+    
+    <div class="status-section">
+      <div class="status-item">
+        <span class="label">运行状态：</span>
+        <span id="status" class="status-value">已停止</span>
+      </div>
+      <div class="status-item">
+        <span class="label">已学习：</span>
+        <span id="learned-count" class="status-value">0</span>
+        <span class="label-small">个课程</span>
+      </div>
+      <div class="status-item">
+        <span class="label">当前课程：</span>
+        <span id="current-course" class="status-value">无</span>
+      </div>
+    </div>
+
+    <div class="control-section">
+      <button id="toggle-btn" class="btn btn-start">
+        <span id="btn-text">开始学习</span>
+      </button>
+      <button id="reset-btn" class="btn btn-reset">
+        重置进度
+      </button>
+    </div>
+
+    <div class="settings-section">
+      <h3>⚙️ 设置</h3>
+      <div class="setting-item">
+        <label for="video-speed">视频倍速：</label>
+        <select id="video-speed">
+          <option value="1">1.0x</option>
+          <option value="1.25">1.25x</option>
+          <option value="1.5" selected>1.5x</option>
+          <option value="1.75">1.75x</option>
+          <option value="2">2.0x</option>
+        </select>
+      </div>
+      <div class="setting-item">
+        <label for="auto-next">自动下一课：</label>
+        <input type="checkbox" id="auto-next" checked>
+      </div>
+      <div class="setting-item">
+        <label for="loop-learning">循环学习：</label>
+        <input type="checkbox" id="loop-learning" checked>
+      </div>
+    </div>
+
+    <div class="log-section">
+      <h3>📝 运行日志</h3>
+      <div id="log-content" class="log-content"></div>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
+

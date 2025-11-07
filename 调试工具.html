@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>插件调试工具</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+      padding: 20px;
+      background: #f5f5f5;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+    }
+    h1 {
+      margin: 0 0 10px 0;
+    }
+    .card {
+      background: white;
+      padding: 25px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .card h2 {
+      margin-top: 0;
+      color: #667eea;
+    }
+    button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      margin: 5px;
+      transition: transform 0.2s;
+    }
+    button:hover {
+      transform: translateY(-2px);
+    }
+    .result {
+      background: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 4px;
+      padding: 15px;
+      margin-top: 15px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .success {
+      color: #28a745;
+      font-weight: bold;
+    }
+    .error {
+      color: #dc3545;
+      font-weight: bold;
+    }
+    .warning {
+      color: #ffc107;
+      font-weight: bold;
+    }
+    .info {
+      color: #17a2b8;
+    }
+    pre {
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .step {
+      background: #e7f3ff;
+      padding: 15px;
+      border-left: 4px solid #667eea;
+      margin: 15px 0;
+      border-radius: 4px;
+    }
+    .step-number {
+      display: inline-block;
+      background: #667eea;
+      color: white;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      text-align: center;
+      line-height: 30px;
+      margin-right: 10px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🔧 插件调试工具</h1>
+    <p>帮助您测试和调试自动学习助手插件</p>
+  </div>
+
+  <div class="card">
+    <h2>📋 使用说明</h2>
+    <div class="step">
+      <span class="step-number">1</span>
+      <strong>打开学习平台页面</strong><br>
+      在浏览器中打开您的学习平台网站
+    </div>
+    <div class="step">
+      <span class="step-number">2</span>
+      <strong>打开浏览器开发者工具</strong><br>
+      按 <code>F12</code> 键打开开发者工具
+    </div>
+    <div class="step">
+      <span class="step-number">3</span>
+      <strong>切换到 Console 标签</strong><br>
+      在开发者工具中找到 Console（控制台）标签
+    </div>
+    <div class="step">
+      <span class="step-number">4</span>
+      <strong>复制下方代码并粘贴到 Console</strong><br>
+      点击下方按钮复制代码，然后粘贴到 Console 中按回车运行
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>🔍 检测课程卡片</h2>
+    <p>这段代码会帮您检测页面上的课程元素，并显示详细信息</p>
+    <button onclick="copyCode('detectCards')">📋 复制代码</button>
+    <button onclick="testLocally('detectCards')">🧪 本地测试</button>
+    <div class="result" id="detectCards-result" style="display:none;"></div>
+    <pre id="detectCards" style="display:none;">
+// ========== 课程卡片检测工具 ==========
+console.log('%c🔍 开始检测课程卡片...', 'color: #667eea; font-size: 16px; font-weight: bold;');
+
+// 定义选择器
+const selectors = [
+  '.item.hover-shadow',
+  '.item',
+  '.course-card',
+  '.course-item',
+  '.video-item',
+  '.lesson-item',
+  '[class*="course"]',
+  '[class*="card"]'
+];
+
+let found = false;
+
+selectors.forEach(selector => {
+  const elements = document.querySelectorAll(selector);
+  if (elements.length > 0) {
+    console.log(`%c✅ 找到 ${elements.length} 个元素使用选择器: ${selector}`, 'color: green; font-weight: bold;');
+    
+    // 检查第一个元素的特征
+    const first = elements[0];
+    console.log('第一个元素的详细信息：');
+    console.log('- 标签名:', first.tagName);
+    console.log('- 类名:', first.className);
+    console.log('- 是否有图片:', !!first.querySelector('img'));
+    console.log('- 是否有 .cover:', !!first.querySelector('.cover'));
+    console.log('- 是否有 .info-box:', !!first.querySelector('.info-box'));
+    console.log('- 是否有 .speaker:', !!first.querySelector('.speaker'));
+    console.log('- 是否有 .progress:', !!first.querySelector('.progress'));
+    console.log('- 文本内容前50字符:', first.textContent.trim().substring(0, 50));
+    
+    // 高亮显示找到的元素
+    elements.forEach((el, index) => {
+      el.style.outline = '3px solid red';
+      el.style.outlineOffset = '2px';
+      setTimeout(() => {
+        el.style.outline = '';
+      }, 5000);
+    });
+    
+    console.log('%c💡 已用红色边框高亮显示找到的元素（5秒后消失）', 'color: orange;');
+    found = true;
+  }
+});
+
+if (!found) {
+  console.log('%c❌ 未找到任何课程卡片元素', 'color: red; font-weight: bold;');
+  console.log('请手动查看页面结构，并提供课程卡片的HTML代码');
+}
+
+console.log('%c✨ 检测完成！', 'color: #667eea; font-size: 16px; font-weight: bold;');
+    </pre>
+  </div>
+
+  <div class="card">
+    <h2>🎥 检测视频元素</h2>
+    <p>检测页面上的视频播放器</p>
+    <button onclick="copyCode('detectVideo')">📋 复制代码</button>
+    <button onclick="testLocally('detectVideo')">🧪 本地测试</button>
+    <div class="result" id="detectVideo-result" style="display:none;"></div>
+    <pre id="detectVideo" style="display:none;">
+// ========== 视频元素检测工具 ==========
+console.log('%c🎥 开始检测视频元素...', 'color: #667eea; font-size: 16px; font-weight: bold;');
+
+const videos = document.querySelectorAll('video');
+
+if (videos.length > 0) {
+  console.log(`%c✅ 找到 ${videos.length} 个视频元素`, 'color: green; font-weight: bold;');
+  
+  videos.forEach((video, index) => {
+    console.log(`\n视频 ${index + 1}:`);
+    console.log('- 宽度:', video.videoWidth);
+    console.log('- 高度:', video.videoHeight);
+    console.log('- 当前时间:', video.currentTime, '秒');
+    console.log('- 总时长:', video.duration, '秒');
+    console.log('- 是否暂停:', video.paused);
+    console.log('- 是否结束:', video.ended);
+    console.log('- 播放速度:', video.playbackRate);
+    console.log('- 视频源:', video.src || video.currentSrc);
+    
+    // 高亮视频元素
+    video.style.outline = '3px solid blue';
+    setTimeout(() => {
+      video.style.outline = '';
+    }, 5000);
+  });
+  
+  console.log('%c💡 已用蓝色边框高亮显示视频（5秒后消失）', 'color: orange;');
+} else {
+  console.log('%c❌ 当前页面没有视频元素', 'color: red; font-weight: bold;');
+  console.log('请打开一个包含视频的课程页面再试');
+}
+
+console.log('%c✨ 检测完成！', 'color: #667eea; font-size: 16px; font-weight: bold;');
+    </pre>
+  </div>
+
+  <div class="card">
+    <h2>🔄 模拟自动化流程</h2>
+    <p>模拟插件的自动化行为，看看能否正确识别和点击课程</p>
+    <button onclick="copyCode('simulate')">📋 复制代码</button>
+    <button onclick="testLocally('simulate')">🧪 本地测试</button>
+    <div class="result" id="simulate-result" style="display:none;"></div>
+    <pre id="simulate" style="display:none;">
+// ========== 自动化流程模拟工具 ==========
+console.log('%c🔄 开始模拟自动化流程...', 'color: #667eea; font-size: 16px; font-weight: bold;');
+
+// 检测课程卡片
+function detectCourseCards() {
+  const selectors = [
+    '.item.hover-shadow',
+    '.item',
+    '.course-card',
+    '.course-item'
+  ];
+  
+  for (const selector of selectors) {
+    const cards = document.querySelectorAll(selector);
+    if (cards.length > 0) {
+      const validCards = Array.from(cards).filter(card => {
+        const hasImage = card.querySelector('img');
+        const hasCover = card.querySelector('.cover');
+        const hasInfoBox = card.querySelector('.info-box');
+        const hasSpeaker = card.querySelector('.speaker');
+        return hasImage || hasCover || hasInfoBox || hasSpeaker;
+      });
+      
+      if (validCards.length > 0) {
+        console.log(`%c✅ 使用选择器 "${selector}" 找到 ${validCards.length} 个有效课程`, 'color: green;');
+        return validCards;
+      }
+    }
+  }
+  return null;
+}
+
+// 获取课程标题
+function getCourseTitle(card) {
+  const speakerEl = card.querySelector('.speaker .c-text');
+  if (speakerEl) return speakerEl.textContent.trim();
+  
+  const img = card.querySelector('img');
+  if (img && img.src) {
+    const urlParts = img.src.split('/');
+    return urlParts[urlParts.length - 1];
+  }
+  
+  return card.textContent.trim().substring(0, 30);
+}
+
+// 执行检测
+const cards = detectCourseCards();
+
+if (cards && cards.length > 0) {
+  console.log(`\n%c📚 找到 ${cards.length} 个课程：`, 'color: blue; font-weight: bold;');
+  
+  cards.forEach((card, index) => {
+    const title = getCourseTitle(card);
+    console.log(`${index + 1}. ${title}`);
+    
+    // 高亮显示
+    card.style.outline = '3px solid green';
+    card.style.outlineOffset = '2px';
+    
+    // 添加序号标签
+    const label = document.createElement('div');
+    label.textContent = index + 1;
+    label.style.position = 'absolute';
+    label.style.top = '10px';
+    label.style.left = '10px';
+    label.style.background = 'red';
+    label.style.color = 'white';
+    label.style.width = '30px';
+    label.style.height = '30px';
+    label.style.borderRadius = '50%';
+    label.style.display = 'flex';
+    label.style.alignItems = 'center';
+    label.style.justifyContent = 'center';
+    label.style.fontWeight = 'bold';
+    label.style.zIndex = '9999';
+    
+    card.style.position = 'relative';
+    card.appendChild(label);
+    
+    setTimeout(() => {
+      card.style.outline = '';
+      if (label.parentNode) {
+        label.remove();
+      }
+    }, 10000);
+  });
+  
+  console.log('\n%c💡 课程已用绿色边框和序号标记（10秒后消失）', 'color: orange;');
+  console.log('%c✅ 插件应该能够正确识别这些课程！', 'color: green; font-weight: bold;');
+  
+  // 测试点击第一个课程
+  console.log('\n%c🖱️ 如果要测试点击第一个课程，请在5秒内按 Ctrl+C 取消，否则将自动点击', 'color: red; font-weight: bold;');
+  
+  let countdown = 5;
+  const timer = setInterval(() => {
+    console.log(`${countdown}...`);
+    countdown--;
+    if (countdown < 0) {
+      clearInterval(timer);
+      console.log('%c⚠️ 即将点击第一个课程...', 'color: orange; font-weight: bold;');
+      cards[0].click();
+      console.log('%c✅ 已点击第一个课程！', 'color: green; font-weight: bold;');
+    }
+  }, 1000);
+  
+} else {
+  console.log('%c❌ 未找到课程卡片', 'color: red; font-weight: bold;');
+  console.log('请检查页面结构或提供更多信息');
+}
+
+console.log('%c✨ 模拟完成！', 'color: #667eea; font-size: 16px; font-weight: bold;');
+    </pre>
+  </div>
+
+  <div class="card">
+    <h2>📊 插件状态检查</h2>
+    <p>检查插件是否正确安装和加载</p>
+    <button onclick="copyCode('checkPlugin')">📋 复制代码</button>
+    <button onclick="testLocally('checkPlugin')">🧪 本地测试</button>
+    <div class="result" id="checkPlugin-result" style="display:none;"></div>
+    <pre id="checkPlugin" style="display:none;">
+// ========== 插件状态检查工具 ==========
+console.log('%c📊 开始检查插件状态...', 'color: #667eea; font-size: 16px; font-weight: bold;');
+
+// 检查 Chrome API
+if (typeof chrome !== 'undefined' && chrome.runtime) {
+  console.log('%c✅ Chrome API 可用', 'color: green;');
+  console.log('- 扩展ID:', chrome.runtime.id);
+} else {
+  console.log('%c❌ Chrome API 不可用', 'color: red;');
+  console.log('插件可能未正确安装或未加载');
+}
+
+// 检查 Storage API
+if (typeof chrome !== 'undefined' && chrome.storage) {
+  console.log('%c✅ Storage API 可用', 'color: green;');
+  
+  chrome.storage.local.get(null, (items) => {
+    console.log('\n当前存储的数据：');
+    console.log(items);
+  });
+} else {
+  console.log('%c❌ Storage API 不可用', 'color: red;');
+}
+
+// 检查内容脚本是否加载
+const scripts = Array.from(document.querySelectorAll('script')).map(s => s.src);
+console.log('\n页面加载的脚本：');
+console.log(scripts);
+
+console.log('%c✨ 检查完成！', 'color: #667eea; font-size: 16px; font-weight: bold;');
+    </pre>
+  </div>
+
+  <div class="card">
+    <h2>💡 常见问题</h2>
+    <ul>
+      <li><strong>找不到课程元素？</strong> 可能页面还没加载完成，等待几秒后重试</li>
+      <li><strong>高亮显示不正确？</strong> 说明选择器需要调整，请提供页面HTML结构</li>
+      <li><strong>点击后没反应？</strong> 检查元素是否可点击，或者是否需要点击内部的链接</li>
+      <li><strong>插件没加载？</strong> 刷新页面，确保插件已启用</li>
+    </ul>
+  </div>
+
+  <script>
+    function copyCode(id) {
+      const code = document.getElementById(id).textContent;
+      navigator.clipboard.writeText(code).then(() => {
+        alert('✅ 代码已复制到剪贴板！\n\n请：\n1. 打开学习平台页面\n2. 按F12打开开发者工具\n3. 切换到Console标签\n4. 粘贴代码并按回车');
+      }).catch(err => {
+        console.error('复制失败:', err);
+        alert('❌ 复制失败，请手动复制代码');
+      });
+    }
+
+    function testLocally(id) {
+      const resultDiv = document.getElementById(id + '-result');
+      resultDiv.style.display = 'block';
+      resultDiv.innerHTML = '<span class="warning">⚠️ 本地测试模式</span><br><br>';
+      resultDiv.innerHTML += '请注意：这个工具页面本身没有课程元素。<br>';
+      resultDiv.innerHTML += '您需要在实际的学习平台页面使用这些代码。<br><br>';
+      resultDiv.innerHTML += '<span class="info">建议操作：</span><br>';
+      resultDiv.innerHTML += '1. 点击上方"复制代码"按钮<br>';
+      resultDiv.innerHTML += '2. 打开您的学习平台网站<br>';
+      resultDiv.innerHTML += '3. 按F12打开开发者工具<br>';
+      resultDiv.innerHTML += '4. 在Console中粘贴并运行代码';
+    }
+  </script>
+</body>
+</html>
+

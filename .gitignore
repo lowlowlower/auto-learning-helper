@@ -1,0 +1,25 @@
+# 操作系统文件
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE 文件
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 临时文件
+*.log
+*.tmp
+.temp/
+
+# Chrome Extension
+*.pem
+*.crx
+*.zip
+
+# 备份文件
+*.bak
+*.backup

@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>图标生成器</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    .container {
+      background: white;
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      text-align: center;
+      max-width: 600px;
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+    }
+    p {
+      color: #666;
+      margin-bottom: 30px;
+    }
+    .preview {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      margin: 30px 0;
+    }
+    .icon-preview {
+      text-align: center;
+    }
+    canvas {
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      display: block;
+      margin: 10px auto;
+    }
+    .size-label {
+      font-size: 14px;
+      color: #666;
+      margin-top: 5px;
+    }
+    button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 12px 30px;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+      margin: 5px;
+      transition: transform 0.2s;
+    }
+    button:hover {
+      transform: translateY(-2px);
+    }
+    .instructions {
+      margin-top: 30px;
+      text-align: left;
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      line-height: 1.8;
+    }
+    .instructions h3 {
+      margin-top: 0;
+      color: #667eea;
+    }
+    .instructions ol {
+      margin: 10px 0;
+      padding-left: 20px;
+    }
+    .success {
+      color: #28a745;
+      font-weight: bold;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📚 插件图标生成器</h1>
+    <p>为自动学习助手插件生成图标文件</p>
+    
+    <div class="preview">
+      <div class="icon-preview">
+        <canvas id="canvas16" width="16" height="16"></canvas>
+        <div class="size-label">16x16</div>
+      </div>
+      <div class="icon-preview">
+        <canvas id="canvas48" width="48" height="48"></canvas>
+        <div class="size-label">48x48</div>
+      </div>
+      <div class="icon-preview">
+        <canvas id="canvas128" width="128" height="128"></canvas>
+        <div class="size-label">128x128</div>
+      </div>
+    </div>
+    
+    <button onclick="downloadIcon(16)">下载 icon16.png</button>
+    <button onclick="downloadIcon(48)">下载 icon48.png</button>
+    <button onclick="downloadIcon(128)">下载 icon128.png</button>
+    <br>
+    <button onclick="downloadAll()" style="background: #28a745; margin-top: 15px;">📥 下载全部图标</button>
+    
+    <div class="instructions">
+      <h3>📖 使用说明：</h3>
+      <ol>
+        <li>点击上方按钮下载对应尺寸的图标文件</li>
+        <li>或点击"下载全部图标"一次性下载所有文件</li>
+        <li>将下载的文件放入插件目录的 <code>icons</code> 文件夹中</li>
+        <li>确保文件名为：icon16.png、icon48.png、icon128.png</li>
+        <li>重新加载插件即可看到图标</li>
+      </ol>
+      <p><strong>💡 提示：</strong>如果想自定义图标样式，可以修改下方的 JavaScript 代码。</p>
+    </div>
+    
+    <div id="success" class="success" style="display:none;">
+      ✅ 图标已准备好，请点击下载按钮保存！
+    </div>
+  </div>
+
+  <script>
+    // 绘制图标的函数
+    function drawIcon(canvas, size) {
+      const ctx = canvas.getContext('2d');
+      
+      // 绘制渐变背景
+      const gradient = ctx.createLinearGradient(0, 0, size, size);
+      gradient.addColorStop(0, '#667eea');
+      gradient.addColorStop(1, '#764ba2');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, size, size);
+      
+      // 绘制书本图标
+      ctx.fillStyle = 'white';
+      
+      if (size === 16) {
+        // 简化版图标
+        ctx.fillRect(4, 5, 8, 8);
+        ctx.fillStyle = '#667eea';
+        ctx.fillRect(5, 6, 6, 2);
+      } else if (size === 48) {
+        // 中等复杂度
+        // 书本
+        ctx.fillRect(12, 14, 24, 22);
+        ctx.fillStyle = '#667eea';
+        ctx.fillRect(14, 16, 20, 4);
+        ctx.fillRect(14, 22, 20, 4);
+        ctx.fillRect(14, 28, 20, 4);
+      } else {
+        // 最详细版本
+        // 书本
+        ctx.fillRect(32, 38, 64, 58);
+        ctx.fillStyle = '#667eea';
+        ctx.fillRect(38, 44, 52, 8);
+        ctx.fillRect(38, 58, 52, 8);
+        ctx.fillRect(38, 72, 52, 8);
+        
+        // 书签
+        ctx.fillStyle = '#ffd700';
+        ctx.fillRect(82, 38, 8, 40);
+      }
+      
+      // 添加圆角效果（仅在大图标上）
+      if (size === 128) {
+        ctx.globalCompositeOperation = 'destination-in';
+        ctx.beginPath();
+        ctx.roundRect(0, 0, size, size, 16);
+        ctx.fill();
+        ctx.globalCompositeOperation = 'source-over';
+      }
+    }
+    
+    // 初始化所有画布
+    function initCanvases() {
+      drawIcon(document.getElementById('canvas16'), 16);
+      drawIcon(document.getElementById('canvas48'), 48);
+      drawIcon(document.getElementById('canvas128'), 128);
+      document.getElementById('success').style.display = 'block';
+    }
+    
+    // 下载单个图标
+    function downloadIcon(size) {
+      const canvas = document.getElementById('canvas' + size);
+      const link = document.createElement('a');
+      link.download = 'icon' + size + '.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+    
+    // 下载所有图标
+    async function downloadAll() {
+      downloadIcon(16);
+      await sleep(200);
+      downloadIcon(48);
+      await sleep(200);
+      downloadIcon(128);
+      alert('✅ 所有图标已开始下载！\n\n请将下载的3个文件放入插件的 icons 文件夹中。');
+    }
+    
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+    
+    // 页面加载时初始化
+    window.onload = initCanvases;
+  </script>
+</body>
+</html>
+
