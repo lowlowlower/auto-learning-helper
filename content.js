@@ -297,6 +297,12 @@ async function handleCourseListPage(courseCards) {
     setTimeout(() => {
       console.log('%c[自动学习助手] 🖱️ 即将点击课程...', 'color: orange; font-weight: bold');
       clickCourseCard(unlearnedCourse);
+      
+      // 等待页面加载后，重新启动检测循环（同一标签页跳转需要）
+      setTimeout(() => {
+        console.log('%c[自动学习助手] 🔄 页面已跳转，重新启动检测循环', 'color: blue; font-weight: bold');
+        startDetectionLoop();
+      }, 4000);
     }, 1000);
     
   } else {
