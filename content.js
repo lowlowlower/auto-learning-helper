@@ -4,15 +4,20 @@ console.log('自动学习助手内容脚本已加载');
 let isRunning = false;
 let checkInterval = null;
 let videoCheckInterval = null;
+let isNavigating = false; // 标记是否正在跳转页面
 
 // 初始化
 (async function init() {
-  const result = await chrome.storage.local.get(['isRunning']);
-  isRunning = result.isRunning || false;
-  
-  if (isRunning) {
-    log('检测到上次运行状态，正在恢复...');
-    start();
+  try {
+    const result = await chrome.storage.local.get(['isRunning']);
+    isRunning = result.isRunning || false;
+    
+    if (isRunning) {
+      log('检测到上次运行状态，正在恢复...');
+      start();
+    }
+  } catch (error) {
+    console.log('%c[自动学习助手] ⚠️ 初始化失败，扩展可能已重新加载', 'color: orange');
   }
 })();
 
@@ -88,12 +93,20 @@ function stop() {
 async function detectPageAndRun() {
   if (!isRunning) return;
   
+  // 如果正在跳转页面，跳过检测
+  if (isNavigating) {
+    console.log('%c[自动学习助手] ⏸️ 正在跳转页面，跳过检测', 'color: gray');
+    return;
+  }
+  
   console.log('%c[自动学习助手] 检测页面类型...', 'color: purple', location.href);
   
   // 检测是否是视频播放页面
   const video = document.querySelector('video');
   if (video) {
     console.log('%c[自动学习助手] ✅ 这是视频播放页面', 'color: green; font-weight: bold');
+    // 清除跳转标志
+    isNavigating = false;
     await handleVideoPage(video);
     return;
   }
@@ -206,9 +219,13 @@ async function handleVideoPage(video) {
         log('视频播放完成');
         
         // 增加学习计数
-        const result = await chrome.storage.local.get(['learnedCount']);
-        const newCount = (result.learnedCount || 0) + 1;
-        await updateStatus({ learnedCount: newCount });
+        try {
+          const result = await chrome.storage.local.get(['learnedCount']);
+          const newCount = (result.learnedCount || 0) + 1;
+          await updateStatus({ learnedCount: newCount });
+        } catch (error) {
+          console.log('%c[自动学习助手] ⚠️ 更新学习计数失败', 'color: orange');
+        }
         
         // 返回列表页面
         const settings = await getSettings();
@@ -284,25 +301,20 @@ async function handleCourseListPage(courseCards) {
     
     // 记录已学习课程
     learnedCourses.push(courseId);
-    await chrome.storage.local.set({ learnedCourses });
-    
-    // 重要：停止检测循环，避免重复点击
-    if (checkInterval) {
-      clearInterval(checkInterval);
-      checkInterval = null;
-      console.log('%c[自动学习助手] ⏸️ 停止检测循环，等待页面跳转', 'color: orange; font-weight: bold');
+    try {
+      await chrome.storage.local.set({ learnedCourses });
+    } catch (error) {
+      console.log('%c[自动学习助手] ⚠️ 保存学习记录失败', 'color: orange');
     }
+    
+    // 设置跳转标志，防止重复点击
+    isNavigating = true;
+    console.log('%c[自动学习助手] 🚀 设置跳转标志，暂停检测', 'color: orange; font-weight: bold');
     
     // 点击课程卡片
     setTimeout(() => {
       console.log('%c[自动学习助手] 🖱️ 即将点击课程...', 'color: orange; font-weight: bold');
       clickCourseCard(unlearnedCourse);
-      
-      // 等待页面加载后，重新启动检测循环（同一标签页跳转需要）
-      setTimeout(() => {
-        console.log('%c[自动学习助手] 🔄 页面已跳转，重新启动检测循环', 'color: blue; font-weight: bold');
-        startDetectionLoop();
-      }, 4000);
     }, 1000);
     
   } else {
@@ -320,7 +332,11 @@ async function handleCourseListPage(courseCards) {
       
       if (settings.loopLearning) {
         log('开启循环学习，重置进度...');
-        await chrome.storage.local.set({ learnedCourses: [] });
+        try {
+          await chrome.storage.local.set({ learnedCourses: [] });
+        } catch (error) {
+          console.log('%c[自动学习助手] ⚠️ 重置学习记录失败', 'color: orange');
+        }
         setTimeout(() => {
           location.reload();
         }, 2000);
@@ -576,12 +592,9 @@ function goToNextPage() {
   log('尝试翻到下一页...');
   console.log('%c[自动学习助手] 📄 尝试翻到下一页...', 'color: blue; font-weight: bold');
   
-  // 停止检测循环，避免在翻页过程中重复操作
-  if (checkInterval) {
-    clearInterval(checkInterval);
-    checkInterval = null;
-    console.log('%c[自动学习助手] ⏸️ 停止检测循环，等待翻页', 'color: orange; font-weight: bold');
-  }
+  // 设置跳转标志，避免在翻页过程中重复操作
+  isNavigating = true;
+  console.log('%c[自动学习助手] ⏸️ 设置翻页标志，暂停检测', 'color: orange; font-weight: bold');
   
   // 方法1：查找"下一页"按钮
   const nextBtnSelectors = [
@@ -602,10 +615,10 @@ function goToNextPage() {
         log('已点击下一页按钮');
         console.log('%c[自动学习助手] ✅ 已点击下一页', 'color: green; font-weight: bold');
         
-        // 等待页面内容加载后，重新启动检测循环
+        // 等待页面内容加载后，清除跳转标志
         setTimeout(() => {
-          console.log('%c[自动学习助手] 🔄 页面内容已加载，重新启动检测循环', 'color: blue; font-weight: bold');
-          startDetectionLoop();
+          isNavigating = false;
+          console.log('%c[自动学习助手] 🔄 页面内容已加载，恢复检测', 'color: blue; font-weight: bold');
         }, 3000);
       }, 2000);
       return true;
@@ -630,10 +643,10 @@ function goToNextPage() {
           log(`已点击第${pageNum}页`);
           console.log('%c[自动学习助手] ✅ 已点击页码', 'color: green; font-weight: bold', pageNum);
           
-          // 等待页面内容加载后，重新启动检测循环
+          // 等待页面内容加载后，清除跳转标志
           setTimeout(() => {
-            console.log('%c[自动学习助手] 🔄 页面内容已加载，重新启动检测循环', 'color: blue; font-weight: bold');
-            startDetectionLoop();
+            isNavigating = false;
+            console.log('%c[自动学习助手] 🔄 页面内容已加载，恢复检测', 'color: blue; font-weight: bold');
           }, 3000);
         }, 2000);
         return true;
@@ -645,13 +658,8 @@ function goToNextPage() {
   log('没有找到下一页');
   console.log('%c[自动学习助手] ⚠️ 没有找到下一页，可能已经是最后一页', 'color: orange; font-weight: bold');
   
-  // 没有下一页，重新启动检测循环（如果需要循环学习）
-  if (checkInterval === null) {
-    console.log('%c[自动学习助手] 🔄 重新启动检测循环', 'color: blue');
-    checkInterval = setInterval(() => {
-      detectPageAndRun();
-    }, 3000);
-  }
+  // 清除跳转标志
+  isNavigating = false;
   
   return false;
 }
@@ -693,18 +701,37 @@ function updateVideoSpeed(speed) {
 
 // 更新状态
 async function updateStatus(data) {
-  await chrome.runtime.sendMessage({
-    action: 'updateStatus',
-    data: data
-  });
+  try {
+    await chrome.runtime.sendMessage({
+      action: 'updateStatus',
+      data: data
+    });
+  } catch (error) {
+    // 如果扩展上下文失效，忽略错误
+    if (error.message && error.message.includes('Extension context invalidated')) {
+      console.log('%c[自动学习助手] ⚠️ 扩展已重新加载，跳过状态更新', 'color: orange');
+    }
+  }
 }
 
 // 获取设置
 async function getSettings() {
   return new Promise((resolve) => {
-    chrome.runtime.sendMessage({ action: 'getSettings' }, (response) => {
-      resolve(response || {});
-    });
+    try {
+      chrome.runtime.sendMessage({ action: 'getSettings' }, (response) => {
+        // 检查chrome.runtime.lastError
+        if (chrome.runtime.lastError) {
+          console.log('%c[自动学习助手] ⚠️ 获取设置失败，使用默认值', 'color: orange');
+          resolve({ videoSpeed: 1, loopLearning: false });
+          return;
+        }
+        resolve(response || { videoSpeed: 1, loopLearning: false });
+      });
+    } catch (error) {
+      // 如果扩展上下文失效，返回默认设置
+      console.log('%c[自动学习助手] ⚠️ 扩展已重新加载，使用默认设置', 'color: orange');
+      resolve({ videoSpeed: 1, loopLearning: false });
+    }
   });
 }
 
