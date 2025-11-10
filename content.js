@@ -93,12 +93,6 @@ function stop() {
 async function detectPageAndRun() {
   if (!isRunning) return;
   
-  // 如果正在跳转页面，跳过检测
-  if (isNavigating) {
-    console.log('%c[自动学习助手] ⏸️ 正在跳转页面，跳过检测', 'color: gray');
-    return;
-  }
-  
   console.log('%c[自动学习助手] 检测页面类型...', 'color: purple', location.href);
   
   // 检测是否是视频播放页面
@@ -115,6 +109,13 @@ async function detectPageAndRun() {
   const courseCards = detectCourseCards();
   if (courseCards && courseCards.length > 0) {
     console.log('%c[自动学习助手] ✅ 这是课程列表页面', 'color: green; font-weight: bold');
+    
+    // 如果正在跳转页面，跳过课程列表的处理
+    if (isNavigating) {
+      console.log('%c[自动学习助手] ⏸️ 正在跳转页面，跳过课程列表处理', 'color: gray');
+      return;
+    }
+    
     await handleCourseListPage(courseCards);
     return;
   }
