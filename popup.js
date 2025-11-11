@@ -102,18 +102,20 @@ toggleBtn.addEventListener('click', async () => {
 
 // 重置按钮点击事件
 resetBtn.addEventListener('click', async () => {
-  if (confirm('确定要重置学习进度吗？')) {
+  if (confirm('确定要重置学习进度吗？这将清除所有已学习课程记录。')) {
     await chrome.storage.local.set({
       isRunning: false,
       learnedCount: 0,
       currentCourse: '无',
       learnedCourses: [],
+      currentLearningCourseId: null,
+      activeSessionId: null,
       logs: []
     });
     
     await loadStatus();
     await loadLogs();
-    addLog('已重置学习进度');
+    addLog('已重置学习进度，可以重新学习所有课程');
   }
 });
 
