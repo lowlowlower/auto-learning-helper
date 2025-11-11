@@ -498,13 +498,29 @@ async function checkVideoCompletion(video) {
 async function handleCourseListPage(courseCards) {
   log(`检测到课程列表页面，共 ${courseCards.length} 个课程`);
   
-  // ✅ 超时检测：如果等待新标签页打开超过10秒，清除等待标志
+  // ✅ 超时检测：如果等待新标签页打开超过15秒，向后台确认
   if (isWaitingForVideoTab && waitingStartTime) {
     const elapsed = Date.now() - waitingStartTime;
-    if (elapsed > 10000) { // 10秒超时
-      console.log('[主标签页] ⚠️ 等待新标签页打开超时（10秒），清除等待标志');
-      isWaitingForVideoTab = false;
-      waitingStartTime = null;
+    if (elapsed > 15000) { // 15秒后开始确认
+      console.log('[主标签页] ⚠️ 等待超过15秒，向后台确认状态');
+      
+      try {
+        const confirmResponse = await chrome.runtime.sendMessage({ action: 'checkLearningStatus' });
+        
+        if (confirmResponse && (confirmResponse.learningStatus === 'idle' && !confirmResponse.videoTabId)) {
+          // 确认后台没有视频标签页，才清除标志
+          console.log('[主标签页] ✅ 后台确认无视频标签页，清除等待标志');
+          isWaitingForVideoTab = false;
+          waitingStartTime = null;
+        } else {
+          // 后台有视频标签页，重置计时器继续等待
+          console.log('[主标签页] ⚠️ 后台确认有视频标签页（learningStatus:', confirmResponse?.learningStatus, ', videoTabId:', confirmResponse?.videoTabId, '），继续等待');
+          waitingStartTime = Date.now(); // 重置计时器，避免频繁查询
+        }
+      } catch (error) {
+        console.log('[主标签页] ⚠️ 查询后台状态失败，为安全起见保持等待状态');
+        waitingStartTime = Date.now(); // 重置计时器
+      }
     }
   }
   
@@ -526,12 +542,21 @@ async function handleCourseListPage(courseCards) {
   try {
     const response = await chrome.runtime.sendMessage({ action: 'checkLearningStatus' });
     
-    if (response.learningStatus === 'learning') {
-      console.log('[主标签页] ⏸️ 已有学习标签页在学习，等待完成...');
+    console.log('[主标签页] 📊 后台状态:', response);
+    
+    if (response && response.learningStatus === 'learning') {
+      console.log('[主标签页] ⏸️ 后台确认：已有学习标签页在学习（videoTabId:', response.videoTabId, '），等待完成...');
       return; // 等待学习标签页完成
     }
+    
+    if (!response) {
+      console.log('[主标签页] ⚠️ 后台无响应，为安全起见跳过本次点击');
+      return; // 安全起见，不点击
+    }
   } catch (error) {
-    console.log('[主标签页] ⚠️ 查询学习状态失败');
+    console.log('[主标签页] ⚠️ 查询学习状态失败:', error.message);
+    console.log('[主标签页] ⚠️ 为安全起见，跳过本次点击（避免重复打开标签页）');
+    return; // ✅ 查询失败时也阻止点击
   }
   
   // 获取已学习列表
@@ -590,10 +615,34 @@ async function handleCourseListPage(courseCards) {
       console.log('[主标签页] ⚠️ 保存课程ID失败');
     }
     
+    // ✅ 输出详细的状态检查日志（用于调试重复打开问题）
+    console.log('[主标签页] 📊 点击课程前的详细状态:');
+    console.log(`  - 课程ID: ${courseId}`);
+    console.log(`  - 课程标题: ${title}`);
+    console.log(`  - isWaitingForVideoTab (当前): ${isWaitingForVideoTab}`);
+    console.log(`  - waitingStartTime (当前): ${waitingStartTime}`);
+    
+    // 再次查询后台状态（双重确认）
+    try {
+      const finalCheck = await chrome.runtime.sendMessage({ action: 'checkLearningStatus' });
+      console.log(`  - 后台 learningStatus: ${finalCheck?.learningStatus}`);
+      console.log(`  - 后台 videoTabId: ${finalCheck?.videoTabId}`);
+      
+      if (finalCheck && finalCheck.learningStatus === 'learning') {
+        console.log('[主标签页] ⚠️ 最终检查：后台确认已有视频在播放，取消点击！');
+        return; // 最后一道防线：如果后台确认有视频在播放，不点击
+      }
+    } catch (error) {
+      console.log('[主标签页] ⚠️ 最终状态检查失败，取消点击（安全优先）');
+      return;
+    }
+    
     // ✅ 立即设置等待标志（防止重复点击）
     isWaitingForVideoTab = true;
     waitingStartTime = Date.now();
     console.log('[主标签页] 🔒 设置等待标志，防止重复点击');
+    console.log(`  - isWaitingForVideoTab (新): ${isWaitingForVideoTab}`);
+    console.log(`  - waitingStartTime (新): ${waitingStartTime}`);
     
     // 点击课程卡片（将在新标签页打开）
     setTimeout(() => {
