@@ -11,6 +11,9 @@ let hasSwitchedToElective = false; // 标记是否已切换到选修
 let failedCourses = []; // 记录点击失败的课程ID
 let isWaitingForVideoTab = false; // 标记是否正在等待新标签页打开（防止重复点击）
 let waitingStartTime = null; // 记录等待开始时间（用于超时检测）
+let isWaitingForNextVideo = false; // 标记是否正在等待下一个视频（连续播放检测）
+let videoCompletionCheckTime = null; // 记录视频完成检测的时间
+let lastCompletedVideoTime = null; // 记录上一个完成视频的currentTime
 
 // 初始化
 (async function init() {
@@ -105,9 +108,12 @@ async function stop() {
     videoCheckInterval = null;
   }
   
-  // ✅ 清除等待标志
+  // ✅ 清除所有等待标志
   isWaitingForVideoTab = false;
   waitingStartTime = null;
+  isWaitingForNextVideo = false;
+  videoCompletionCheckTime = null;
+  lastCompletedVideoTime = null;
   console.log('[主逻辑] 🔓 已清除所有等待标志');
   
   try {
@@ -184,6 +190,11 @@ async function detectPageAndRun() {
 // 处理视频播放页面
 async function handleVideoPage(video) {
   console.log('[学习标签页] 检测到视频元素', video);
+  
+  // ✅ 重置连续播放检测标志（新视频页面开始）
+  isWaitingForNextVideo = false;
+  videoCompletionCheckTime = null;
+  lastCompletedVideoTime = null;
   
   // 检查确认对话框
   const confirmBtns = document.querySelectorAll('button');
@@ -437,16 +448,65 @@ async function checkVideoCompletion(video) {
   const isCompleted = hasReplayButton || hasEndedClass || isVideoEnded || isPausedAtEnd;
   
   if (isCompleted) {
-    console.log('[学习标签页] 🎬 视频学习完成！');
-    console.log(`[学习标签页] 完成判断依据:`);
-    console.log(`  - Replay按钮出现: ${hasReplayButton} ⭐`);
-    console.log(`  - 播放控制按钮有vjs-ended类: ${hasEndedClass} ⭐`);
-    console.log(`  - 视频ended: ${isVideoEnded} ⭐`);
-    console.log(`  - 暂停在结尾(≥95%): ${isPausedAtEnd} ⭐`);
-    console.log(`  - 播放进度: ${progress.toFixed(1)}%`);
-    console.log(`  - 当前时间: ${video.currentTime.toFixed(2)}s / ${video.duration.toFixed(2)}s`);
+    // ✅ 检测到视频完成
     
-    log('视频播放完成');
+    // 如果已经在等待下一个视频，检查是否超过5秒
+    if (isWaitingForNextVideo && videoCompletionCheckTime) {
+      const waitingTime = Date.now() - videoCompletionCheckTime;
+      const waitingSeconds = Math.floor(waitingTime / 1000);
+      
+      console.log(`[学习标签页] ⏳ 等待下一个视频... (已等待${waitingSeconds}秒/5秒)`);
+      
+      // 检查是否有新视频开始播放
+      if (video.currentTime < lastCompletedVideoTime - 10 || 
+          (video.currentTime < 30 && !video.paused) ||
+          progress < 90) {
+        // 检测到新视频：currentTime大幅减少，或者在前30秒且在播放，或者进度<90%
+        console.log('[学习标签页] 🎬 检测到下一个视频开始播放！');
+        console.log(`  - 上一个视频结束时间: ${lastCompletedVideoTime?.toFixed(2)}s`);
+        console.log(`  - 当前视频时间: ${video.currentTime.toFixed(2)}s`);
+        console.log(`  - 当前播放状态: ${video.paused ? '暂停' : '播放中'}`);
+        console.log(`  - 当前进度: ${progress.toFixed(1)}%`);
+        
+        // 重置等待标志，继续监控新视频
+        isWaitingForNextVideo = false;
+        videoCompletionCheckTime = null;
+        lastCompletedVideoTime = null;
+        
+        log('检测到连续播放，继续学习');
+        return false; // 继续监控
+      }
+      
+      // 已经等待超过5秒，确认没有下一个视频
+      if (waitingTime >= 5000) {
+        console.log('[学习标签页] ✅ 等待5秒后确认：没有下一个视频，课程真正完成');
+        
+        // 继续执行关闭逻辑（下面的代码）
+      } else {
+        // 还没到5秒，继续等待
+        return false;
+      }
+    } else {
+      // 第一次检测到完成，开始等待
+      console.log('[学习标签页] 🎬 视频播放完成！开始等待5秒，检测是否有下一个视频...');
+      console.log(`[学习标签页] 完成判断依据:`);
+      console.log(`  - Replay按钮出现: ${hasReplayButton} ⭐`);
+      console.log(`  - 播放控制按钮有vjs-ended类: ${hasEndedClass} ⭐`);
+      console.log(`  - 视频ended: ${isVideoEnded} ⭐`);
+      console.log(`  - 暂停在结尾(≥95%): ${isPausedAtEnd} ⭐`);
+      console.log(`  - 播放进度: ${progress.toFixed(1)}%`);
+      console.log(`  - 当前时间: ${video.currentTime.toFixed(2)}s / ${video.duration.toFixed(2)}s`);
+      
+      isWaitingForNextVideo = true;
+      videoCompletionCheckTime = Date.now();
+      lastCompletedVideoTime = video.currentTime;
+      
+      log('视频播放完成，等待5秒检测连续播放');
+      return false; // 继续监控
+    }
+    
+    // ===== 以下是确认完成后的关闭逻辑 =====
+    console.log('[学习标签页] 🎉 课程学习完成，准备关闭标签页');
     
     // 更新学习计数
     try {
@@ -478,6 +538,11 @@ async function checkVideoCompletion(video) {
     checkInterval = null;
     videoCheckInterval = null;
     isRunning = false;
+    
+    // ✅ 重置连续播放检测标志
+    isWaitingForNextVideo = false;
+    videoCompletionCheckTime = null;
+    lastCompletedVideoTime = null;
     
     // 请求后台关闭此标签页
     console.log('[学习标签页] 🔄 请求后台关闭此标签页');
